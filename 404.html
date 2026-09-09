@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>actify · page not found</title>
+  <meta name="description" content="Actify could not find that page, but your next cozy activity is only a step away.">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      overflow-x: hidden;
+      overflow-x: clip;
+      font-family: "VT323", "Courier New", monospace;
+      color: #4a3829;
+      background: #fdf2e0;
+      background-image:
+        radial-gradient(circle at 18% 22%, #ffd6b0 0, transparent 38%),
+        radial-gradient(circle at 82% 78%, #ffc1cc 0, transparent 38%);
+    }
+    .card {
+      width: 100%;
+      max-width: 420px;
+      padding: 36px 28px 30px;
+      text-align: center;
+      background: #fff8ec;
+      border: 4px solid #4a3829;
+      border-radius: 18px;
+      box-shadow: 8px 8px 0 #4a3829;
+    }
+    .sparkle {
+      width: 54px;
+      height: 54px;
+      max-width: 100%;
+      margin: 0 auto 18px;
+      display: block;
+    }
+    .brand {
+      margin: 0 0 24px;
+      font-family: "Press Start 2P", monospace;
+      font-size: 16px;
+      letter-spacing: 0.5px;
+    }
+    .brand a {
+      color: inherit;
+      font: inherit;
+      text-decoration: none;
+    }
+    .brand a:focus-visible { outline: 2px solid #e78fb3; outline-offset: 3px; border-radius: 2px; }
+    .error-title {
+      margin: 0 0 18px;
+      font-family: "Press Start 2P", monospace;
+      font-size: 17px;
+      line-height: 1.65;
+      letter-spacing: 0.5px;
+      overflow-wrap: anywhere;
+    }
+    p {
+      margin: 0 0 26px;
+      font-size: 22px;
+      line-height: 1.15;
+      color: #7a5a3f;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 20px;
+      color: #fff8ec;
+      background: #e78fb3;
+      border: 3px solid #4a3829;
+      border-radius: 12px;
+      box-shadow: 4px 4px 0 #4a3829;
+      font-family: "VT323", monospace;
+      font-size: 22px;
+      text-decoration: none;
+      transition: transform 0.08s, box-shadow 0.08s;
+    }
+    .btn:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 #4a3829; }
+    .btn:focus-visible { outline: 3px solid #e78fb3; outline-offset: 3px; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <svg class="sparkle" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">
+      <rect x="7" y="1" width="2" height="2" fill="#e78fb3" />
+      <rect x="7" y="5" width="2" height="2" fill="#e78fb3" />
+      <rect x="7" y="9" width="2" height="2" fill="#e78fb3" />
+      <rect x="7" y="13" width="2" height="2" fill="#e78fb3" />
+      <rect x="1" y="7" width="2" height="2" fill="#e78fb3" />
+      <rect x="5" y="7" width="2" height="2" fill="#e78fb3" />
+      <rect x="9" y="7" width="2" height="2" fill="#e78fb3" />
+      <rect x="13" y="7" width="2" height="2" fill="#e78fb3" />
+      <rect x="3" y="3" width="2" height="2" fill="#f4a261" />
+      <rect x="11" y="3" width="2" height="2" fill="#f4a261" />
+      <rect x="3" y="11" width="2" height="2" fill="#f4a261" />
+      <rect x="11" y="11" width="2" height="2" fill="#f4a261" />
+    </svg>
+    <h1 class="brand"><a href="index.html">actify</a></h1>
+    <h2 class="error-title">Looks like this page wandered off</h2>
+    <p>Let’s head back to your cozy corner of Actify.</p>
+    <a class="btn" href="index.html">back home ✦</a>
+  </main>
+</body>
+</html>

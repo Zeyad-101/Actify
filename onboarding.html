@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>actify · welcome</title>
+  <meta name="description" content="Set up your Actify character and interests to get personalized free-time recommendations.">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="manifest" href="/manifest.json">
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      min-height: 100vh;
+      font-family: "VT323", "Courier New", monospace;
+      color: #4a3829;
+      background: #fdf2e0;
+      background-image:
+        radial-gradient(circle at 18% 22%, #ffd6b0 0, transparent 38%),
+        radial-gradient(circle at 82% 78%, #ffc1cc 0, transparent 38%);
+      padding: 24px 16px 64px;
+      overflow-x: hidden;
+      overflow-x: clip;
+    }
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .brand {
+      font-family: "Press Start 2P", monospace;
+      font-size: 20px;
+      letter-spacing: 1px;
+      margin: 0 0 8px;
+    }
+    .brand a {
+      color: inherit;
+      font: inherit;
+      text-decoration: none;
+    }
+    .brand a:focus-visible { outline: 2px solid #e78fb3; outline-offset: 3px; border-radius: 2px; }
+    .step-label {
+      font-size: 18px;
+      color: #7a5a3f;
+      margin: 0;
+    }
+    .card {
+      background: #fff8ec;
+      border: 4px solid #4a3829;
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: 8px 8px 0 #4a3829;
+    }
+    .preview-pane {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .preview-card {
+      background: #fdf2e0;
+      border: 3px solid #4a3829;
+      border-radius: 14px;
+      padding: 16px;
+      width: 200px;
+      max-width: 100%;
+      height: 200px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #characterPreview {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #characterPreview svg {
+      width: 160px;
+      height: 160px;
+      image-rendering: pixelated;
+    }
+    .preview-name {
+      font-family: "Press Start 2P", monospace;
+      font-size: 12px;
+      color: #4a3829;
+      min-height: 16px;
+      letter-spacing: 0.5px;
+      overflow-wrap: anywhere;
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+    .field label {
+      font-size: 18px;
+      color: #7a5a3f;
+    }
+    .field input[type="text"] {
+      font-family: "VT323", monospace;
+      font-size: 20px;
+      padding: 8px 10px;
+      border: 2px solid #4a3829;
+      border-radius: 8px;
+      background: #fff8ec;
+      color: #4a3829;
+    }
+    .field input[type="text"]:focus {
+      outline: 3px solid #e78fb3;
+      outline-offset: 2px;
+    }
+    .swatches {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .swatch {
+      width: 36px;
+      height: 36px;
+      border: 2px solid #4a3829;
+      border-radius: 6px;
+      cursor: pointer;
+      padding: 0;
+      box-shadow: 2px 2px 0 #4a3829;
+      transition: transform 0.08s, box-shadow 0.08s;
+    }
+    .swatch:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 3px 3px 0 #4a3829;
+    }
+    .swatch.active {
+      outline: 3px solid #e78fb3;
+      outline-offset: 2px;
+    }
+    .button-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .pill {
+      font-family: "VT323", monospace;
+      font-size: 20px;
+      padding: 6px 14px;
+      background: #fff8ec;
+      border: 2px solid #4a3829;
+      border-radius: 16px;
+      color: #4a3829;
+      cursor: pointer;
+      box-shadow: 2px 2px 0 #4a3829;
+      text-transform: capitalize;
+      transition: transform 0.08s, box-shadow 0.08s;
+    }
+    .pill:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 3px 3px 0 #4a3829;
+    }
+    .pill.active {
+      background: #e78fb3;
+      color: #fff8ec;
+    }
+    input[type="color"] {
+      width: 56px;
+      height: 38px;
+      border: 2px solid #4a3829;
+      border-radius: 8px;
+      background: #fff8ec;
+      cursor: pointer;
+      padding: 2px;
+    }
+    .nav-row {
+      display: flex;
+      justify-content: center;
+      margin-top: 16px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 24px;
+      background: #fff8ec;
+      border: 3px solid #4a3829;
+      border-radius: 12px;
+      box-shadow: 4px 4px 0 #4a3829;
+      font-family: "VT323", monospace;
+      font-size: 22px;
+      color: #4a3829;
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform 0.08s, box-shadow 0.08s;
+    }
+    .btn:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 6px 6px 0 #4a3829;
+    }
+    .btn:active {
+      transform: translate(2px, 2px);
+      box-shadow: 2px 2px 0 #4a3829;
+    }
+    .btn:focus-visible {
+      outline: 3px solid #e78fb3;
+      outline-offset: 3px;
+    }
+    .btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: 4px 4px 0 #4a3829;
+    }
+    .btn.primary {
+      background: #e78fb3;
+      color: #fff8ec;
+    }
+    .btn.small {
+      font-size: 18px;
+      padding: 6px 14px;
+    }
+    /* Step 2 */
+    .prompt {
+      font-size: 22px;
+      color: #7a5a3f;
+      margin: 0 0 16px;
+      text-align: center;
+    }
+    .interests {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .interest-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 12px;
+      background: #fff8ec;
+      border: 2px solid #4a3829;
+      border-radius: 10px;
+      box-shadow: 2px 2px 0 #4a3829;
+      flex-wrap: wrap;
+    }
+    .interest-row .check {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 20px;
+      cursor: pointer;
+      flex: 0 0 140px;
+    }
+    .interest-row > span.check {
+      cursor: default;
+      flex: 0 0 140px;
+    }
+    .interest-row input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: #e78fb3;
+    }
+    .slider {
+      flex: 1 1 160px;
+      min-width: 120px;
+      max-width: 260px;
+      accent-color: #e78fb3;
+    }
+    .slider-value {
+      font-size: 18px;
+      color: #7a5a3f;
+      min-width: 26px;
+      text-align: right;
+    }
+    .remove-btn {
+      background: none;
+      border: 2px solid #4a3829;
+      border-radius: 6px;
+      width: 30px;
+      height: 30px;
+      font-family: "VT323", monospace;
+      font-size: 20px;
+      color: #4a3829;
+      cursor: pointer;
+      padding: 0;
+      line-height: 1;
+      flex: 0 0 auto;
+    }
+    .custom-input-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .custom-input-row input {
+      flex: 1 1 180px;
+      min-width: 0;
+      font-family: "VT323", monospace;
+      font-size: 20px;
+      padding: 8px 10px;
+      border: 2px solid #4a3829;
+      border-radius: 8px;
+      background: #fff8ec;
+      color: #4a3829;
+    }
+    .custom-input-row input:focus {
+      outline: 3px solid #e78fb3;
+      outline-offset: 2px;
+    }
+    .hidden {
+      display: none !important;
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-4px); }
+      40%, 80% { transform: translateX(4px); }
+    }
+    .shake {
+      animation: shake 0.4s;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <header>
+      <h1 class="brand"><a href="index.html">actify</a></h1>
+      <p class="step-label" id="stepLabel">step 1 of 2 · meet your character</p>
+    </header>
+
+    <!-- STEP 1: character creator -->
+    <section id="step1" class="card">
+      <div class="preview-pane">
+        <div class="preview-card">
+          <div id="characterPreview"></div>
+        </div>
+        <div class="preview-name" id="previewName">your name here</div>
+      </div>
+
+      <div class="field">
+        <label for="nameInput">name</label>
+        <input type="text" id="nameInput" maxlength="24" placeholder="what should we call you?" autocomplete="off" />
+      </div>
+
+      <div class="field">
+        <label>skin</label>
+        <div class="swatches" id="skinSwatches"></div>
+      </div>
+
+      <div class="field">
+        <label>hair style</label>
+        <div class="button-row" id="hairStyleButtons"></div>
+      </div>
+
+      <div class="field">
+        <label>hair color</label>
+        <div class="swatches" id="hairColorSwatches"></div>
+      </div>
+
+      <div class="field">
+        <label>eyes</label>
+        <div class="button-row" id="eyesButtons"></div>
+      </div>
+
+      <div class="field">
+        <label for="shirtColor">shirt</label>
+        <input type="color" id="shirtColor" value="#4a90e2" />
+      </div>
+
+      <div class="field">
+        <label for="pantsColor">pants</label>
+        <input type="color" id="pantsColor" value="#3a3a3a" />
+      </div>
+
+      <div class="field">
+        <label for="shoesColor">shoes</label>
+        <input type="color" id="shoesColor" value="#1a1a1a" />
+      </div>
+
+      <div class="field">
+        <label>accessory</label>
+        <div class="button-row" id="accessoryButtons"></div>
+      </div>
+
+      <div class="nav-row">
+        <button class="btn primary" type="button" id="nextBtn">next →</button>
+      </div>
+    </section>
+
+    <!-- STEP 2: interests -->
+    <section id="step2" class="card hidden">
+      <p class="prompt">what lights you up?</p>
+      <div class="interests" id="presetInterests"></div>
+
+      <div class="custom-input-row">
+        <input
+          type="text"
+          id="customInterestInput"
+          placeholder="add a custom interest..."
+          maxlength="32"
+          autocomplete="off"
+        />
+        <button class="btn small" type="button" id="addCustomBtn">+ add</button>
+      </div>
+      <div class="interests" id="customInterests"></div>
+
+      <div class="nav-row">
+        <button class="btn primary" type="button" id="finishBtn">finish ✦</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabaseClient.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/character.js"></script>
+  <script src="js/onboarding.js"></script>
+</body>
+</html>

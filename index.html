@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>actify · home</title>
+  <meta name="description" content="Your Actify home — see your free time today and get a personalized activity, movie, book, or game recommendation.">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="manifest" href="/manifest.json">
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    *,
+    *::before,
+    *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: "VT323", "Courier New", monospace;
+      color: #4a3829;
+      background: #fdf2e0;
+      background-image:
+        radial-gradient(circle at 18% 22%, #ffd6b0 0, transparent 38%),
+        radial-gradient(circle at 82% 78%, #ffc1cc 0, transparent 38%);
+      padding: 16px 16px 64px;
+      overflow-x: hidden;
+      overflow-x: clip;
+    }
+    .container { max-width: 640px; margin: 0 auto; }
+    .brand a {
+      color: inherit;
+      font: inherit;
+      text-decoration: none;
+    }
+    .brand a:focus-visible { outline: 2px solid #e78fb3; outline-offset: 3px; border-radius: 2px; }
+
+    /* ---- top bar ---- */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+      padding: 0 4px;
+    }
+    .brand {
+      font-family: "Press Start 2P", monospace;
+      font-size: 18px;
+      letter-spacing: 1px;
+      margin: 0;
+      color: #4a3829;
+    }
+    .topnav { display: flex; gap: 14px; }
+    .topnav a {
+      font-family: "VT323", monospace;
+      font-size: 20px;
+      color: #7a5a3f;
+      text-decoration: none;
+      border-bottom: 2px solid transparent;
+      padding-bottom: 1px;
+    }
+    .topnav a:hover { color: #4a3829; border-bottom-color: #e78fb3; }
+    .topnav a:focus-visible { outline: 2px solid #e78fb3; outline-offset: 2px; border-radius: 2px; }
+
+    /* ---- hero ---- */
+    .hero {
+      text-align: center;
+      margin: 8px 0 20px;
+    }
+    .character-slot {
+      display: inline-block;
+      margin-bottom: 4px;
+    }
+    .character-slot svg {
+      width: 200px;
+      height: 200px;
+      display: block;
+      margin: 0 auto;
+    }
+    .greeting {
+      font-family: "Press Start 2P", monospace;
+      font-size: 14px;
+      color: #4a3829;
+      margin: 4px 0 0;
+      letter-spacing: 0.5px;
+    }
+
+    /* ---- card ---- */
+    .card {
+      background: #fff8ec;
+      border: 4px solid #4a3829;
+      border-radius: 18px;
+      padding: 20px 22px;
+      box-shadow: 8px 8px 0 #4a3829;
+      margin-bottom: 18px;
+    }
+    .section-title {
+      font-family: "Press Start 2P", monospace;
+      font-size: 12px;
+      color: #4a3829;
+      margin: 0 0 14px;
+      letter-spacing: 0.5px;
+    }
+
+    /* ---- free-time card (the focus) ---- */
+    .free-time-card { text-align: center; }
+    .free-time-text {
+      font-size: 24px;
+      color: #4a3829;
+      margin: 0 0 14px;
+      line-height: 1.15;
+    }
+    .free-time-empty {
+      font-size: 22px;
+      color: #a38672;
+      margin: 0 0 6px;
+    }
+
+    /* ---- button ---- */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 20px;
+      background: #fff8ec;
+      border: 3px solid #4a3829;
+      border-radius: 12px;
+      box-shadow: 4px 4px 0 #4a3829;
+      font-family: "VT323", monospace;
+      font-size: 22px;
+      color: #4a3829;
+      cursor: pointer;
+      transition: transform 0.08s, box-shadow 0.08s;
+    }
+    .btn:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 #4a3829; }
+    .btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #4a3829; }
+    .btn:focus-visible { outline: 3px solid #e78fb3; outline-offset: 3px; }
+    .btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; box-shadow: 4px 4px 0 #4a3829; }
+    .btn.primary { background: #e78fb3; color: #fff8ec; }
+    .btn.danger { background: #c34a36; color: #fff8ec; }
+    .btn.connected { background: #b6d8a8; color: #fff8ec; cursor: default; }
+    .btn.connected:disabled { opacity: 1; }
+    .btn.small { font-size: 18px; padding: 6px 12px; }
+
+    .install-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      background: #ffe5ec;
+      border: 2px solid #4a3829;
+      border-radius: 12px;
+      box-shadow: 3px 3px 0 #4a3829;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+    .install-copy { flex: 1 1 200px; }
+    .install-title { margin: 0 0 3px; font-size: 22px; }
+    .install-hint { margin: 0; font-size: 18px; color: #7a5a3f; }
+
+    /* ---- mood picker ---- */
+    .mood-section { text-align: center; }
+    .mood-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    .mood-pill {
+      font-family: "VT323", monospace;
+      font-size: 20px;
+      padding: 10px 4px;
+      background: #fff8ec;
+      border: 2px solid #4a3829;
+      border-radius: 12px;
+      color: #4a3829;
+      cursor: pointer;
+      box-shadow: 2px 2px 0 #4a3829;
+      transition: transform 0.08s, box-shadow 0.08s, background 0.08s, color 0.08s;
+    }
+    .mood-pill:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 #4a3829; }
+    .mood-pill.active { background: #e78fb3; color: #fff8ec; }
+    .mood-pill:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+    .mood-pill:focus-visible { outline: 2px solid #e78fb3; outline-offset: 2px; }
+
+    /* ---- recommendation cards ---- */
+    .recommend-list { display: flex; flex-direction: column; gap: 12px; }
+    .rec-card {
+      background: #fff8ec;
+      border: 3px solid #4a3829;
+      border-radius: 14px;
+      padding: 14px 16px;
+      box-shadow: 4px 4px 0 #4a3829;
+    }
+    .rec-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 4px;
+      flex-wrap: wrap;
+    }
+    .rec-title {
+      font-family: "Press Start 2P", monospace;
+      font-size: 12px;
+      color: #4a3829;
+      margin: 0;
+      letter-spacing: 0.5px;
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+    .rec-cat {
+      font-family: "VT323", monospace;
+      font-size: 18px;
+      background: #fdf2e0;
+      border: 1.5px solid #4a3829;
+      border-radius: 8px;
+      padding: 0 8px;
+      color: #4a3829;
+      line-height: 1.4;
+    }
+    .rec-meta {
+      font-size: 18px;
+      color: #7a5a3f;
+      margin: 0 0 4px;
+    }
+    .rec-reason {
+      font-size: 18px;
+      color: #7a5a3f;
+      margin: 0 0 12px;
+      font-style: italic;
+    }
+    .rec-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    /* ---- to-do ---- */
+    .todo-list {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .todo-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      background: #fff8ec;
+      border: 2px solid #4a3829;
+    }
+    .todo-item input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      accent-color: #e78fb3;
+    }
+    .todo-item.done .todo-title {
+      text-decoration: line-through;
+      opacity: 0.55;
+    }
+    .todo-title {
+      flex: 1;
+      font-size: 20px;
+      color: #4a3829;
+      word-break: break-word;
+    }
+    .todo-del {
+      font-family: "VT323", monospace;
+      font-size: 24px;
+      background: transparent;
+      border: none;
+      color: #c34a36;
+      cursor: pointer;
+      padding: 0 6px;
+      line-height: 1;
+    }
+    .todo-del:hover { color: #4a3829; }
+    .todo-del:focus-visible { outline: 2px solid #e78fb3; outline-offset: 2px; border-radius: 4px; }
+    .day-section + .day-section {
+      border-top: 2px dashed #d6bfa7;
+      margin-top: 16px;
+      padding-top: 16px;
+    }
+    .day-section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .day-section-head .section-title { margin: 0; }
+    .cal-status { font-size: 18px; color: #7a5a3f; margin: 0 0 10px; }
+    .schedule-list { display: flex; flex-direction: column; gap: 10px; }
+    .schedule-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 14px;
+      background: #fff8ec;
+      border: 2px solid #4a3829;
+      border-radius: 10px;
+      box-shadow: 2px 2px 0 #4a3829;
+      flex-wrap: wrap;
+    }
+    .schedule-card.today {
+      background: #ffe5ec;
+      border-color: #c34a36;
+      box-shadow: 2px 2px 0 #c34a36;
+    }
+    .schedule-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      flex: 1 1 200px;
+      min-width: 0;
+    }
+    .schedule-title {
+      font-family: "Press Start 2P", monospace;
+      font-size: 12px;
+      color: #4a3829;
+      letter-spacing: 0.5px;
+      overflow-wrap: anywhere;
+    }
+    .schedule-meta { font-size: 18px; color: #7a5a3f; }
+    .schedule-actions { display: flex; gap: 6px; flex: 0 0 auto; }
+    .today-badge {
+      display: inline-block;
+      background: #c34a36;
+      color: #fff8ec;
+      font-family: "Press Start 2P", monospace;
+      font-size: 8px;
+      padding: 4px 6px;
+      border-radius: 4px;
+      margin-left: 8px;
+      vertical-align: middle;
+      letter-spacing: 0.5px;
+    }
+    .day-add { width: 100%; margin-top: 16px; }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      display: grid;
+      place-items: center;
+      padding: 16px;
+      background: rgba(74, 56, 41, 0.55);
+    }
+    .modal {
+      width: min(100%, 520px);
+      max-height: calc(100vh - 32px);
+      overflow-y: auto;
+      background: #fff8ec;
+      border: 4px solid #4a3829;
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: 8px 8px 0 #4a3829;
+    }
+    .modal-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .modal-head .section-title { margin: 0; }
+    .modal-close {
+      font: inherit;
+      font-size: 28px;
+      line-height: 1;
+      color: #4a3829;
+      background: transparent;
+      border: 0;
+      cursor: pointer;
+      padding: 0 4px;
+    }
+    .modal-close:focus-visible { outline: 2px solid #e78fb3; outline-offset: 2px; border-radius: 4px; }
+    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .field label { font-size: 18px; color: #7a5a3f; }
+    .field input[type="text"],
+    .field input[type="date"],
+    .field input[type="time"] {
+      width: 100%;
+      font-family: "VT323", monospace;
+      font-size: 20px;
+      padding: 8px 10px;
+      border: 2px solid #4a3829;
+      border-radius: 8px;
+      background: #fff8ec;
+      color: #4a3829;
+    }
+    .field input:focus { outline: 3px solid #e78fb3; outline-offset: 2px; }
+    .field-row { display: flex; gap: 12px; }
+    .field-row .field { flex: 1; min-width: 0; }
+    .button-row, .form-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .form-actions { justify-content: center; margin-top: 8px; }
+    .pill {
+      font-family: "VT323", monospace;
+      font-size: 20px;
+      padding: 6px 14px;
+      background: #fff8ec;
+      border: 2px solid #4a3829;
+      border-radius: 16px;
+      color: #4a3829;
+      cursor: pointer;
+      box-shadow: 2px 2px 0 #4a3829;
+    }
+    .pill.active { background: #e78fb3; color: #fff8ec; }
+    .day-pill { width: 38px; padding: 6px 0; text-align: center; flex: 0 0 auto; }
+    .task-nudge {
+      border-style: dashed;
+      background: #ffe5ec;
+    }
+    .task-nudge-copy { margin: 0 0 10px; font-size: 20px; color: #7a5a3f; overflow-wrap: anywhere; }
+
+    .empty-state {
+      text-align: center;
+      font-size: 18px;
+      color: #a38672;
+      margin: 12px 0;
+    }
+    .hidden { display: none !important; }
+
+    @media (max-width: 480px) {
+      .mood-grid { grid-template-columns: repeat(2, 1fr); }
+      .character-slot svg { width: 160px; height: 160px; }
+      .greeting { font-size: 12px; }
+      .free-time-text { font-size: 20px; }
+      .card, .modal { padding: 16px; }
+      .schedule-card { flex-direction: column; align-items: flex-start; }
+      .schedule-actions { width: 100%; justify-content: flex-end; }
+      .field-row { flex-direction: column; gap: 0; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <h1 class="brand"><a href="index.html">actify</a></h1>
+    <nav class="topnav">
+      <a href="#" id="logoutLink">log out</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="install-card" id="installCard" hidden aria-label="Install Actify">
+      <div class="install-copy">
+        <p class="install-title">take actify with you ✦</p>
+        <p class="install-hint" id="iosInstallHint" hidden>Tap Share, then Add to Home Screen.</p>
+      </div>
+      <button class="btn small primary" id="installButton" type="button">install app</button>
+    </section>
+
+    <section class="hero">
+      <div id="characterSlot" class="character-slot" aria-hidden="true"></div>
+      <p id="greeting" class="greeting">welcome back</p>
+    </section>
+
+    <section class="card free-time-card">
+      <p id="freeTimeText" class="free-time-text">finding your free time…</p>
+      <button id="ideaBtn" class="btn primary hidden" type="button">i have an idea ✦</button>
+    </section>
+
+    <section id="moodSection" class="card mood-section hidden">
+      <h2 class="section-title">how are you feeling?</h2>
+      <div class="mood-grid" id="moodGrid">
+        <button type="button" class="mood-pill" data-mood="relax">relax</button>
+        <button type="button" class="mood-pill" data-mood="fun">fun</button>
+        <button type="button" class="mood-pill" data-mood="energetic">energetic</button>
+        <button type="button" class="mood-pill" data-mood="learn">learn</button>
+        <button type="button" class="mood-pill" data-mood="create">create</button>
+        <button type="button" class="mood-pill" data-mood="social">social</button>
+        <button type="button" class="mood-pill" data-mood="bored">bored</button>
+        <button type="button" class="mood-pill" data-mood="surprise">surprise</button>
+      </div>
+    </section>
+
+    <section id="recommendSection" class="card hidden">
+      <h2 class="section-title">for you</h2>
+      <div id="recommendList" class="recommend-list"></div>
+    </section>
+
+    <section class="card day-card" aria-labelledby="yourDayTitle">
+      <h2 class="section-title" id="yourDayTitle">your day</h2>
+
+      <section class="day-section" aria-labelledby="busyTimesTitle">
+        <div class="day-section-head">
+          <h3 class="section-title" id="busyTimesTitle">busy times</h3>
+        </div>
+        <div id="scheduleList" class="schedule-list">
+          <p class="empty-state" id="emptyState">no busy times yet — add one below ✿</p>
+        </div>
+      </section>
+
+      <section class="day-section" aria-labelledby="calendarTitle">
+        <div class="day-section-head">
+          <h3 class="section-title" id="calendarTitle">google calendar</h3>
+        </div>
+        <p id="calStatus" class="cal-status">read-only sync of today's busy blocks</p>
+        <button class="btn small primary" type="button" id="calConnectBtn">connect google calendar</button>
+      </section>
+
+      <section class="day-section" aria-labelledby="tasksTitle">
+        <div class="day-section-head">
+          <h3 class="section-title" id="tasksTitle">to-do</h3>
+        </div>
+        <ul id="todoList" class="todo-list"></ul>
+      </section>
+
+      <button class="btn primary day-add" id="openDayModal" type="button">+ add</button>
+    </section>
+  </main>
+
+  <div class="modal-backdrop hidden" id="dayModal" aria-hidden="true">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="dayModalTitle">
+      <div class="modal-head">
+        <h2 class="section-title" id="dayModalTitle">add to your day</h2>
+        <button class="modal-close" id="closeDayModal" type="button" aria-label="close add dialog">×</button>
+      </div>
+
+      <div class="field">
+        <label>what would you like to add?</label>
+        <div class="button-row" id="dayItemType">
+          <button class="pill active" type="button" data-day-type="busy">busy time</button>
+          <button class="pill" type="button" data-day-type="task">task</button>
+        </div>
+      </div>
+
+      <form id="scheduleForm" novalidate>
+        <div id="busyFields">
+          <div class="field">
+            <label for="titleInput">title</label>
+            <input type="text" id="titleInput" maxlength="60" required autocomplete="off" />
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="startTime">start</label>
+              <input type="time" id="startTime" required />
+            </div>
+            <div class="field">
+              <label for="endTime">end</label>
+              <input type="time" id="endTime" required />
+            </div>
+          </div>
+          <div class="field">
+            <label>when</label>
+            <div class="button-row" id="typeToggle">
+              <button type="button" class="pill active" data-type="oneoff">one-off</button>
+              <button type="button" class="pill" data-type="recurring">recurring</button>
+            </div>
+          </div>
+          <div class="field" id="dateField">
+            <label for="specificDate">date</label>
+            <input type="date" id="specificDate" />
+          </div>
+          <div class="field hidden" id="weekdaysField">
+            <label>weekdays</label>
+            <div class="button-row" id="weekdayToggles">
+              <button type="button" class="pill day-pill" data-day="0">S</button>
+              <button type="button" class="pill day-pill" data-day="1">M</button>
+              <button type="button" class="pill day-pill" data-day="2">T</button>
+              <button type="button" class="pill day-pill" data-day="3">W</button>
+              <button type="button" class="pill day-pill" data-day="4">T</button>
+              <button type="button" class="pill day-pill" data-day="5">F</button>
+              <button type="button" class="pill day-pill" data-day="6">S</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="field hidden" id="taskFields">
+          <label for="taskTitleInput">task</label>
+          <input type="text" id="taskTitleInput" maxlength="80" autocomplete="off" />
+        </div>
+
+        <div class="form-actions">
+          <button class="btn primary" type="submit" id="submitBtn">add ✦</button>
+          <button class="btn" type="button" id="cancelBtn">cancel</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabaseClient.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/character.js"></script>
+  <script src="js/tasks.js"></script>
+  <script src="js/activities.js"></script>
+  <script src="js/calendar.js"></script>
+  <script src="js/schedule.js"></script>
+  <script src="js/freeTime.js"></script>
+  <script src="js/adapters/tmdb.js"></script>
+  <script src="js/adapters/openLibrary.js"></script>
+  <script src="js/adapters/rawg.js"></script>
+  <script src="js/adapters/articles.js"></script>
+  <script src="js/adapters/overpass.js"></script>
+  <script src="js/recommendation.js"></script>
+  <script src="js/feedback.js"></script>
+  <script src="js/home.js"></script>
+  <script src="js/installPrompt.js"></script>
+</body>
+</html>
