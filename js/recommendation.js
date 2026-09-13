@@ -1,24 +1,28 @@
 // Recommendation engine for Actify.
 //
-// Picks top-3 activity suggestions from window.GENERIC_ACTIVITIES based on
-// (a) how much free time the user has, (b) their current mood, (c) their
-// saved interests, and (d) the last 5 activities they actually did — so we
-// don't keep suggesting the same category over and over.
+// Picks top-3 activity suggestions from window.GENERIC_ACTIVITIES based on:
+//   (a) how much free time the user has
+//   (b) their current mood
+//   (c) their saved interests
+//   (d) per-activity moodTags (direct mood match bonus)
+//   (e) the last 5 activities they actually did — penalised more heavily
+//       to avoid repeating the same category
+//   (f) a session-level seenIds set so rejected items never reappear
 //
-// API-backed adapters use the same getRecommendations(freeMinutes, mood)
+// API-backed adapters use the same getRecommendations(freeMinutes, mood, seenIds)
 // interface as the built-in activity dataset.
 
 const MOOD_CATEGORY_FIT = {
-  // Watch mirrors Relax, Read mirrors Relax, Play mirrors Create.
-  relax:     { GoOut: 0.5, Create: 0.5, Relax: 1,   Social: 0.5, Watch: 1, Play: 0.5, Read: 1 },
-  fun:       { GoOut: 1,   Social: 1,   Create: 0.5, Play: 0.5 },
-  energetic: { GoOut: 1,   Social: 0.5 },
-  learn:     { Create: 1, Play: 1 },
-  create:    { Create: 1, Play: 1 },
-  social:    { Social: 1,  GoOut: 0.5 },
-  bored:     { Create: 0.5, GoOut: 0.5, Social: 0.5, Play: 0.5 },
-  // 'surprise' = flat 0.5 across all 7 categories; the random nudge below
-  // is what actually shakes up the final order for surprise mood.
+  relax:     { GoOut: 0.5, Create: 0.5, Relax: 1,   Social: 0.5, Watch: 1,   Play: 0.5, Read: 1   },
+  fun:       { GoOut: 1,   Social: 1,   Create: 0.5, Play: 1,     Watch: 0.5, Relax: 0.5           },
+  energetic: { GoOut: 1,   Social: 0.5, Create: 0.5, Play: 0.5                                     },
+  learn:     { Create: 1,  Play: 0.5,   Read: 1,     GoOut: 0.5                                     },
+  create:    { Create: 1,  Play: 0.5,   GoOut: 0.5                                                  },
+  social:    { Social: 1,  GoOut: 0.5,  Watch: 0.5                                                  },
+  // Bored users need variety — open up all categories at a base level so
+  // interest + moodTag bonuses can actually differentiate picks.
+  bored:     { Create: 0.5, GoOut: 0.5, Social: 0.5, Play: 0.5, Watch: 0.5, Relax: 0.5, Read: 0.5 },
+  // surprise = flat across all categories; random nudge does the sorting.
   surprise:  { GoOut: 0.5, Create: 0.5, Relax: 0.5, Social: 0.5, Watch: 0.5, Play: 0.5, Read: 0.5 },
 };
 
@@ -27,9 +31,9 @@ async function getCurrentUserId() {
   return user ? user.id : null;
 }
 
-// Average rating (1–10) across the item's tags that the user actually has
-// in their interests. If none overlap, fall back to 5. Also returns the
-// single tag with the highest matching rating, used to build the reason.
+// Average rating (1–10) across the item's tags that the user has in their
+// interests. Falls back to 5 when no tags overlap. Also returns the single
+// tag with the highest matching rating, used to build the reason string.
 function computeInterestMatch(item, interests) {
   if (!item.tags || item.tags.length === 0) return { avg: 5, topTag: null };
   const ratings = [];
@@ -39,10 +43,7 @@ function computeInterestMatch(item, interests) {
     const r = interests[tag];
     if (r != null) {
       ratings.push(r);
-      if (r > topRating) {
-        topRating = r;
-        topTag = tag;
-      }
+      if (r > topRating) { topRating = r; topTag = tag; }
     }
   }
   if (ratings.length === 0) return { avg: 5, topTag: null };
@@ -51,27 +52,53 @@ function computeInterestMatch(item, interests) {
 }
 
 function buildReason(freeMinutes, topTag, mood) {
-  if (topTag) {
-    return `You have ${freeMinutes} minutes free and enjoy ${topTag}`;
-  }
-  if (mood && mood !== 'surprise') {
-    return `You have ${freeMinutes} minutes free and feel ${mood}`;
-  }
+  if (topTag) return `You have ${freeMinutes} minutes free and enjoy ${topTag}`;
+  if (mood && mood !== 'surprise') return `You have ${freeMinutes} minutes free and feel ${mood}`;
   return `You have ${freeMinutes} minutes free`;
 }
 
-async function getRecommendations(freeMinutes, mood) {
+// Enforce category diversity in the top-N picks.
+// Swaps out items to ensure no single category takes more than `maxPerCat`
+// slots, pulling replacements from the scored-but-not-yet-picked remainder.
+function diversify(top, remainder, maxPerCat = 1) {
+  const catCount = {};
+  const result = [];
+
+  for (const entry of top) {
+    const cat = entry.item.category;
+    catCount[cat] = (catCount[cat] || 0) + 1;
+    if (catCount[cat] <= maxPerCat) {
+      result.push(entry);
+    } else {
+      // Find the best remainder item from a category that still has room.
+      const swapIdx = remainder.findIndex(r => {
+        const c = r.item.category;
+        return (catCount[c] || 0) < maxPerCat;
+      });
+      if (swapIdx !== -1) {
+        const swap = remainder.splice(swapIdx, 1)[0];
+        catCount[swap.item.category] = (catCount[swap.item.category] || 0) + 1;
+        result.push(swap);
+      } else {
+        // No diverse swap available — keep original to maintain count.
+        result.push(entry);
+      }
+    }
+  }
+  return result;
+}
+
+// seenIds: optional Set of activity IDs already shown/dismissed this session.
+async function getRecommendations(freeMinutes, mood, seenIds = new Set()) {
   const userId = await getCurrentUserId();
   if (!userId) return [];
 
   // ---- Stage 0: fetch user context + adapter results in parallel ----
-  // Adapters go through Promise.allSettled so one failing source (network
-  // error, missing API key, rate limit) never breaks the whole call.
   const adapterCalls = [
-    window.TMDBAdapter      && window.TMDBAdapter.search(freeMinutes),
+    window.TMDBAdapter       && window.TMDBAdapter.search(freeMinutes),
     window.OpenLibraryAdapter && window.OpenLibraryAdapter.search(freeMinutes),
-    window.RAWGAdapter      && window.RAWGAdapter.search(freeMinutes),
-    window.ArticlesAdapter  && window.ArticlesAdapter.search(freeMinutes),
+    window.RAWGAdapter       && window.RAWGAdapter.search(freeMinutes),
+    window.ArticlesAdapter   && window.ArticlesAdapter.search(freeMinutes),
   ].filter(Boolean);
 
   const [interestsRes, historyRes, adapterSettled] = await Promise.all([
@@ -89,7 +116,7 @@ async function getRecommendations(freeMinutes, mood) {
   ]);
 
   if (interestsRes.error) throw interestsRes.error;
-  if (historyRes.error) throw historyRes.error;
+  if (historyRes.error)   throw historyRes.error;
 
   const interests = {};
   for (const row of (interestsRes.data || [])) {
@@ -97,7 +124,7 @@ async function getRecommendations(freeMinutes, mood) {
   }
   const recentCategories = (historyRes.data || []).map(r => r.category);
 
-  // Flatten fulfilled adapter results; log any rejections but keep going.
+  // Flatten fulfilled adapter results; log rejections but keep going.
   const adapterItems = [];
   for (const r of (Array.isArray(adapterSettled) ? adapterSettled : [])) {
     if (r.status === 'fulfilled' && Array.isArray(r.value)) {
@@ -113,8 +140,11 @@ async function getRecommendations(freeMinutes, mood) {
     ...(window.GENERIC_ACTIVITIES || []),
     ...adapterItems,
   ];
+
   const filtered = pool.filter(item => {
-    // minutes: null = "flexible length" (e.g. RAWG games) → always passes.
+    // Skip items already shown or dismissed this session.
+    if (seenIds.has(item.id)) return false;
+    // minutes: null = flexible length (e.g. RAWG games) → always passes time filter.
     if (item.minutes != null && item.minutes > freeMinutes) return false;
     if (
       Array.isArray(item.excludedMoods) &&
@@ -129,22 +159,33 @@ async function getRecommendations(freeMinutes, mood) {
   // ---- Stage B: score ----
   const moodTable = MOOD_CATEGORY_FIT[mood] || {};
   const scored = filtered.map(item => {
-    // Adapters attach a tags array (e.g. ["movies"], ["gaming"], ["reading"])
-    // so this lookup works for both generic and real-content items.
     const { avg: interestMatch, topTag } = computeInterestMatch(item, interests);
-    const moodFit = moodTable[item.category] || 0;
-    const recentCount = recentCategories.filter(c => c === item.category).length;
-    const recentRepeatPenalty = -2 * recentCount;
-    const noveltyBonus = recentCount === 0 ? 1 : 0;
+    const moodFit      = moodTable[item.category] || 0;
+    const recentCount  = recentCategories.filter(c => c === item.category).length;
+    // Stronger penalty (×3) so recently-done categories can't dominate
+    // even when interest scores are high.
+    const repeatPenalty = -3 * recentCount;
+    const noveltyBonus  = recentCount === 0 ? 1 : 0;
 
-    let score = interestMatch * 3
+    // Per-activity moodTag bonus: if this specific activity lists the
+    // current mood in its moodTags, add 1.5 — rewarding precision matches
+    // over category-level mood fit alone.
+    const moodTagBonus = (
+      mood &&
+      Array.isArray(item.moodTags) &&
+      item.moodTags.includes(mood)
+    ) ? 1.5 : 0;
+
+    let score = interestMatch * 2.5  // slightly reduced weight so other signals matter
               + moodFit * 2
+              + moodTagBonus
               + noveltyBonus
-              + recentRepeatPenalty;
+              + repeatPenalty
+              // Tiny universal jitter breaks deterministic ties so the same
+              // top-3 doesn't appear every single time.
+              + Math.random() * 0.2;
 
-    // Surprise mood: same scoring, but add a small random nudge so the final
-    // ordering isn't fully deterministic. Range ≤ 0.5 — can't override a big
-    // interest/mood gap, but breaks ties and shuffles close competitors.
+    // Surprise mood: larger random nudge on top of the jitter.
     if (mood === 'surprise') score += Math.random() * 0.5;
 
     return { item, score, topTag };
@@ -152,27 +193,23 @@ async function getRecommendations(freeMinutes, mood) {
 
   // ---- Stage C: sort + category diversity in the final 3 ----
   scored.sort((a, b) => b.score - a.score);
-  const top = scored.slice(0, 3);
 
-  if (top.length === 3) {
-    const cats = new Set(top.map(s => s.item.category));
-    if (cats.size === 1) {
-      // All three top picks share a category — swap the third for the
-      // highest-scoring item from a different category if one exists.
-      const swap = scored.slice(3).find(s => !cats.has(s.item.category));
-      if (swap) top[2] = swap;
-    }
-  }
+  const top3     = scored.slice(0, 3);
+  const remainder = scored.slice(3);
 
-  return top.map(({ item, topTag }) => ({
-    id: item.id,
-    title: item.title,
-    category: item.category,
-    minutes: item.minutes,
-    // Adapter items carry their own reason ("42 min read", "flexible session",
-    // "X min film"). Generic items fall back to the mood-based reason builder.
-    source: item.source || 'generic',
-    reason: item.reason || buildReason(freeMinutes, topTag, mood),
+  // Enforce max 1 item per category across the 3 picks when the pool is
+  // large enough. Falls back gracefully when options are limited.
+  const diversified = filtered.length > 5
+    ? diversify(top3, remainder, 1)
+    : top3;
+
+  return diversified.map(({ item, topTag }) => ({
+    id:        item.id,
+    title:     item.title,
+    category:  item.category,
+    minutes:   item.minutes,  // may be null for games — UI should handle gracefully
+    source:    item.source || 'generic',
+    reason:    item.reason || buildReason(freeMinutes, topTag, mood),
     thumbnail: item.thumbnail || null,
     sourceUrl: item.sourceUrl || null,
     topTag,

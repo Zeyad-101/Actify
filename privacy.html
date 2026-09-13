@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>actify · privacy policy</title>
+  <meta name="description" content="How Actify handles your data.">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: "VT323", "Courier New", monospace;
+      color: #4a3829;
+      background: #fdf2e0;
+      background-image:
+        radial-gradient(circle at 18% 22%, #ffd6b0 0, transparent 38%),
+        radial-gradient(circle at 82% 78%, #ffc1cc 0, transparent 38%);
+      padding: 32px 16px 64px;
+    }
+    .container { max-width: 640px; margin: 0 auto; }
+    .card {
+      background: #fff8ec;
+      border: 4px solid #4a3829;
+      border-radius: 18px;
+      padding: 28px 26px;
+      box-shadow: 8px 8px 0 #4a3829;
+    }
+    h1 {
+      font-family: "Press Start 2P", monospace;
+      font-size: 18px;
+      letter-spacing: 0.5px;
+      margin: 0 0 6px;
+    }
+    .updated { font-size: 18px; color: #a38672; margin: 0 0 24px; }
+    h2 {
+      font-family: "Press Start 2P", monospace;
+      font-size: 13px;
+      letter-spacing: 0.5px;
+      margin: 24px 0 10px;
+    }
+    p, li { font-size: 20px; line-height: 1.4; margin: 0 0 10px; }
+    ul { margin: 0 0 10px; padding-left: 24px; }
+    a { color: #c34a36; }
+    .back { display: inline-block; margin-top: 24px; font-size: 20px; color: #7a5a3f; }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <section class="card">
+      <h1>privacy policy</h1>
+      <p class="updated">Actify is a personal project. Here's exactly what it does with your data.</p>
+
+      <h2>what's collected</h2>
+      <ul>
+        <li>Your name and profile picture from Google, used only to personalize the app.</li>
+        <li>The character, interests, schedule, tasks, and activity feedback you enter, so the app can make useful suggestions.</li>
+        <li>If you connect Google Calendar, read-only access to your calendar's busy/free times for today — Actify never creates, edits, or deletes calendar events, and never sees event titles or details, only start/end times.</li>
+      </ul>
+
+      <h2>where it's stored</h2>
+      <p>Everything is stored in a Supabase database, protected so only your own account can read or write your own data.</p>
+
+      <h2>what's never done</h2>
+      <ul>
+        <li>Your data is never sold, shared, or used for advertising.</li>
+        <li>There's no analytics or tracking beyond what's needed to run the app itself.</li>
+        <li>Calendar access is read-only and never persisted beyond the current session.</li>
+      </ul>
+
+      <h2>third-party services</h2>
+      <p>Actify pulls public content (movies, books, games, articles, nearby places) from TMDB, Open Library, RAWG, dev.to, Hacker News, and OpenStreetMap. These requests don't include any of your personal data — only a time-budget and mood, used to filter results.</p>
+
+      <h2>questions</h2>
+      <p>This is a solo-built personal project. Reach out via <a href="https://github.com/Zeyad-101/Actify">the GitHub repo</a> with any questions.</p>
+
+      <a class="back" href="index.html">← back to actify</a>
+    </section>
+  </main>
+</body>
+</html>
